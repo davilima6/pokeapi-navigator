@@ -1,0 +1,222 @@
+/* General */
+
+body {
+  background-color: lightgoldenrodyellow;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Helvetica, sans-serif;
+}
+
+.error {
+  color: #f62d14;
+  font-weight: bold;
+}
+
+.center {
+  text-align: center;
+}
+
+.no-margin {
+  margin: 0;
+}
+
+/* Grid */
+
+.species-header {
+  grid-column: col1-start / col3-end;
+  grid-row: row1-start;
+}
+
+.species-filters {
+  grid-column: col1-start;
+  grid-row: row2-start;
+}
+
+.species-pagination {
+  grid-column: col2-start;
+  grid-row: row2-start;
+}
+
+.species-main {
+  grid-column: col1-start / col3-start;
+  grid-row: row3-start;
+}
+
+.species-nav {
+  grid-column: col3-start;
+  grid-row: row2-start / row3-end;
+}
+
+.species-filters,
+.species-pagination,
+.species-nav {
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  padding: 1em;
+}
+
+/* Buttons */
+
+.btn {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  color: #000;
+  line-height: 1.5;
+  font-size: 0.9em;
+  margin: auto 0.5em 0.5em;
+  padding: 0.5% 1.5%;
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+.btn-disabled {
+  color: grey;
+  cursor: progress;
+}
+
+/* Species Listing */
+
+.species-wrapper {
+  display: grid;
+  grid-gap: 10px;
+  grid-template-columns: [col1-start] auto [col2-start] auto [col3-start] auto [col3-end];
+  grid-template-rows: [row1-start] auto [row2-start] auto [row3-start] auto [row3-end];
+}
+
+.species-list,
+.species-main-front,
+.species-main-back {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.species-list > *,
+.species-main-front > *,
+.species-main-back > * {
+  flex: 1 100%;
+}
+
+/* Species Card */
+
+.species-item {
+  border: 1px solid #666;
+  border-radius: 6px;
+  box-shadow: 1px 1px rgb(102, 102, 102, 0.2);
+  display: flex;
+  flex: 0 1 auto;
+  flex-flow: row wrap;
+  margin: 5px 10px 5px 0;
+  perspective: 1000px;
+  text-align: center;
+}
+
+.species-item > * {
+  flex: 1 100%;
+}
+
+.species-title {
+  font-size: 2em;
+  line-height: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.species-body {
+  font-size: 0.75em;
+  margin: auto 0.75em 0;
+  text-align: left;
+}
+
+.species-body p {
+  margin: 0;
+}
+
+.species-body .species-flavor-text {
+  font-style: italic;
+  height: 70px;
+  overflow-y: scroll;
+}
+
+.species-evolution-chain {
+  font-size: 1.5em;
+  padding: 0;
+}
+
+/* Species Card - Flipper */
+
+.species-item.show-back .species-main-flipper {
+  transform: rotateY(180deg);
+}
+
+.species-item,
+.species-main-front,
+.species-main-back {
+  height: 250px;
+  width: 225px;
+}
+
+.species-main-flipper {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: 0.6s;
+}
+
+.species-main-front,
+.species-main-back {
+  backface-visibility: hidden;
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.species-main-front {
+  z-index: 2;
+}
+
+.species-main-back {
+  transform: rotateY(180deg);
+}
+
+/* Species Evolution Chain */
+
+.species-next {
+  display: inline;
+  font-weight: bold;
+  list-style: none;
+}
+
+.species-next::before,
+.species-next::after {
+  font-style: italic;
+  font-weight: normal;
+}
+
+.species-next:first-child::before {
+  content: 'From ';
+}
+
+.species-next + .species-next::before {
+  content: ' and then to ';
+}
+
+.species-next:last-child::after {
+  content: '.';
+}
+
+.species-next:first-child:last-child::after {
+  content: " and then... that's it. One of a kind!";
+}
+
+.species-next:last-child::after {
+  content: '.';
+}
+
+/* Todo components styles */
+
+.grid-area.todo {
+  font-style: italic;
+}
+
+.grid-area.todo a {
+  color: #f62d14;
+}

@@ -1,0 +1,44 @@
+<html>
+
+<head>
+    <title>PokéAPI Navigator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="main.js"></script>
+    <link href="main.css" rel="stylesheet">
+</head>
+
+<body>
+    <div id="main-wrapper">
+        <div class="species-wrapper">
+            <div class="grid-area species-header center">
+                <h1>PokéAPI Navigator</h1>
+                <h5>An exercise in Vanilla JS</h5>
+            </div>
+            <div class="grid-area species-filters todo">
+                <h5 class="no-margin">FILTERS</h5>
+                <div>by color, growth rate, habitat</div>
+            </div>
+            <div class="grid-area species-pagination todo">
+                <h5 class="no-margin">PAGINATION</h5>
+                <div>navigation and amount per page</div>
+            </div>
+            <div class="grid-area species-main center">
+                <img src="spinner.svg" width="200" height="200" alt="Loading...">
+                <p>
+                    <em>Catching Pokemon Species... Almost there!</em>
+                </p>
+            </div>
+            <div class="grid-area species-nav todo center">
+                <h5 class="no-margin">TOOLS</h5>
+                <p>Search</p>
+                <p>
+                    <a href="" onclick="clearHomeResults(); renderHome(); return false">Randomise!</a>
+                </p>
+                <p>Send to a friend</p>
+                <p>Social share icons</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
