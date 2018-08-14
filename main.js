@@ -5,7 +5,7 @@
 const KEYS = {
   api: {
     baseUrl: 'https://pokeapi.co/api/v2',
-    paginationLimit: 15,
+    paginationLimit: 10,
   },
   entity: {
     evolutionChain: 'evolution-chain',
@@ -13,12 +13,16 @@ const KEYS = {
   },
   cache: {
     speciesCount: 'pokeapinav_speciesCount',
-    homepageResults: 'pokeapinav_homepageResults',
-    homepageEnhancements: 'pokeapinav_homepageEnhancements',
+    homepageSpecies: 'pokeapinav_homepageSpecies',
   },
   ui: {
     brightColors: ['white', 'pink', 'yellow'],
     language: 'en',
+    labels: {
+      unknown: '<em>Unknown</em>',
+      btnEvolution: 'Show evolution chain',
+      btnDetails: 'Show Species Details',
+    },
   },
 };
 
@@ -64,9 +68,9 @@ class EvolutionChain {
 class ChainLink {
   constructor(data) {
     this.species = data.species;
-    if (data.evolves_to.length) {
-      this.evolvesTo = new ChainLink(data.evolves_to[0]);
-    }
+    this.evolvesTo = data.evolves_to.length
+      ? new ChainLink(data.evolves_to[0])
+      : null;
   }
 }
 
@@ -96,36 +100,34 @@ const catchSpeciesCount = entity => {
     return Promise.resolve(storedCount);
   }
   return catch_(KEYS.entity.pokemonSpecies, 'all', { limit: 1 }).then(data => {
-    const count = data.count;
-    sessionStorage.setItem(KEYS.cache.speciesCount, count);
-    return count;
+    sessionStorage.setItem(KEYS.cache.speciesCount, data.count);
+    return data.count;
   });
 };
 
 // Catcher: Run-once cached function that provides initial set of Species
 const catchHome = () => {
-  const storedData = sessionStorage.getItem(KEYS.cache.homepageResults);
+  const storedData = sessionStorage.getItem(KEYS.cache.homepageSpecies);
   if (storedData) {
     return Promise.resolve(JSON.parse(storedData));
   }
-  return catchSpeciesCount(KEYS.entity.pokemonSpecies).then(count => {
-    let randomOffset = Math.floor(Math.random() * count);
-    randomOffset =
-      randomOffset + KEYS.api.paginationLimit < count
-        ? randomOffset
-        : randomOffset - KEYS.api.paginationLimit;
-    return catch_(KEYS.entity.pokemonSpecies, 'all', {
+  return catchSpeciesCount(KEYS.entity.pokemonSpecies).then(count =>
+    catch_(KEYS.entity.pokemonSpecies, 'all', {
       limit: KEYS.api.paginationLimit,
-      offset: randomOffset,
+      offset: Math.floor(Math.random() * (count - KEYS.api.paginationLimit)),
     }).then(data => {
       sessionStorage.setItem(
-        KEYS.cache.homepageResults,
+        KEYS.cache.homepageSpecies,
         JSON.stringify(data.results),
       );
       return data.results;
-    });
-  });
+    }),
+  );
 };
+
+// Catcher: returns API data as an instance of PokemonSpecies model
+const catchSpeciesDetails = id =>
+  catch_(KEYS.entity.pokemonSpecies, id).then(data => new PokemonSpecies(data));
 
 // Catcher: returns API data as an instance of EvolutionChain model
 const catchEvolutionChain = id =>
@@ -133,35 +135,36 @@ const catchEvolutionChain = id =>
 
 // HELPERS
 
-// View Helper: transforms a string by capitalising its first character
-const _capitalise = str => str.slice(0, 1).toUpperCase() + str.slice(1);
-
 // View Helper: tells if a color is bright
 const _isColorBright = color => KEYS.ui.brightColors.indexOf(color) !== -1;
 
-// Controller Helper: extracts ID from a URL returned by API
+// View Helper: transforms a string by capitalising its first character
+const _capitalise = str => str.slice(0, 1).toUpperCase() + str.slice(1);
+
+// Controller/View Helper: extracts ID from a URL returned by API
 const _extractId = str =>
   str
     .split('/')
     .slice(-2, -1)
     .pop();
 
-// Controller Helper: clear Homepage results from cache
-const clearHomeResults = () => {
-  sessionStorage.removeItem(KEYS.cache.homepageResults);
+// Controller Helper: clear homepage species and old keys from cache
+const clearCache = () => {
+  Object.keys(sessionStorage)
+    .filter(key => key !== KEYS.cache.speciesCount)
+    .forEach(key => sessionStorage.removeItem(key));
   return true;
 };
 
 // RENDERS
 
 // View Helper: renders basic UI cards for initial phase of Species Catching
-const renderSpecies = content => {
+const renderSpecies = speciesArr => {
   const speciesEl = document.querySelector('.species-main');
   let innerHTML = '';
-  for (const species of content) {
-    const speciesId = _extractId(species.url);
+  for (const species of speciesArr) {
     const speciesTpl = `
-<li class="species-item" data-id="${speciesId}">
+<li class="species-item" data-id="${_extractId(species.url)}">
   <div class="species-main-flipper">
     <div class="species-main-front">
       <div class="species-title" title="${_capitalise(
@@ -172,7 +175,9 @@ const renderSpecies = content => {
           <img src="spinner.svg" width="24" height="24" alt="Loading...">
         </div>
       </div>
-      <a href="" onclick="return false" class="btn btn-evolution btn-disabled">Show evolution chain</a>
+      <a href="" onclick="return false" class="btn btn-evolution btn-disabled">${
+        KEYS.ui.labels.btnEvolution
+      }</a>
     </div>
     <div class="species-main-back"></div>
   </div>
@@ -184,7 +189,6 @@ const renderSpecies = content => {
 
 // View Helper: enhances cards details for second phase of Species Catching
 const renderSpeciesBody = pokemonSpecies => {
-  const unknownLbl = '<em>Unknown</em>';
   const bodyEl = pokemonSpecies.dom.querySelector('.species-body');
   const btnEl = pokemonSpecies.dom.querySelector('.btn-evolution');
   pokemonSpecies.dom.style.background = 'lightyellow';
@@ -199,42 +203,26 @@ const renderSpeciesBody = pokemonSpecies => {
 <p><strong>Evolves from:</strong> ${
     pokemonSpecies.evolvesFromSpecies
       ? `${_capitalise(pokemonSpecies.evolvesFromSpecies)}</p>`
-      : unknownLbl
+      : KEYS.ui.labels.unknown
   }
 <p><strong>Habitat:</strong> ${
     pokemonSpecies.habitat
       ? `${_capitalise(pokemonSpecies.habitat)}</p>`
-      : unknownLbl
+      : KEYS.ui.labels.unknown
   }`;
   return pokemonSpecies;
 };
 
-// View Helper: renders cards details for 2nd and 3rd phases of Species Catching
-// Make fetches for each species, update cards details, evolution chain and buttons
-const renderSpeciesDetails = content => {
-  for (const species of content) {
-    const speciesId = _extractId(species.url);
-    catch_(KEYS.entity.pokemonSpecies, speciesId)
-      // 2nd phase: wrap API response into model
-      .then(data => new PokemonSpecies(data))
-      // 2nd phase: render species details on card's front
-      .then(pokemonSpecies => renderSpeciesBody(pokemonSpecies))
-      // 3rd phase: render evolution chain on card's back
-      .then(pokemonSpecies => renderEvolutionChain(pokemonSpecies))
-      // 3rd phase: enable button on card's front
-      .then(pokemonSpecies => {
-        const btnEl = pokemonSpecies.dom.querySelector('.btn-evolution');
-        btnEl.addEventListener('click', e => {
-          e.preventDefault();
-          e.stopPropagation();
-          pokemonSpecies.dom.classList.toggle('show-back');
-        });
-        btnEl.style.color = _isColorBright(pokemonSpecies.color)
-          ? 'black'
-          : 'white';
-        btnEl.classList.remove('btn-disabled');
-      });
-  }
+// View Helper: enable Show Evolution Chain button
+const renderFinalEvolutionBtn = pokemonSpecies => {
+  const btnEl = pokemonSpecies.dom.querySelector('.btn-evolution');
+  btnEl.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    pokemonSpecies.dom.classList.add('show-back');
+  });
+  btnEl.style.color = _isColorBright(pokemonSpecies.color) ? 'black' : 'white';
+  btnEl.classList.remove('btn-disabled');
 };
 
 // View Helper: renders a PokemonSpecies Evolution Chain into card's back
@@ -261,10 +249,11 @@ const renderEvolutionChain = pokemonSpecies => {
         pokemonSpecies.name,
       )}">${_capitalise(pokemonSpecies.name)}</div>
     <div class="species-body">${body}</div>
-    <a href="#" class="btn btn-back">Show Species Details</a>`;
+    <a href="#" class="btn btn-details">${KEYS.ui.labels.btnDetails}</a>`;
 
       // Render card's back button behavior
-      speciesBackEl.addEventListener('click', e => {
+      const btnEl = speciesBackEl.querySelector('.btn-details');
+      btnEl.addEventListener('click', e => {
         e.preventDefault();
         e.stopPropagation();
         pokemonSpecies.dom.classList.remove('show-back');
@@ -275,11 +264,26 @@ const renderEvolutionChain = pokemonSpecies => {
   );
 };
 
-// Main Render: fetches Species as content, renders them and then their details
+// View Helper: renders cards details for 2nd and 3rd phases of Species Catching
+// Make fetches for each species, update cards details, evolution chain and buttons
+const renderSpeciesDetails = speciesArr => {
+  for (const species of speciesArr) {
+    const speciesId = _extractId(species.url);
+    catchSpeciesDetails(speciesId)
+      // 2nd phase: render species details on card's front
+      .then(pokemonSpecies => renderSpeciesBody(pokemonSpecies))
+      // 3rd phase: render evolution chain on card's back
+      .then(pokemonSpecies => renderEvolutionChain(pokemonSpecies))
+      // 3rd phase: enable button on card's front
+      .then(pokemonSpecies => renderFinalEvolutionBtn(pokemonSpecies));
+  }
+};
+
+// Main Render: fetches Species as array, renders each and then their details
 const renderHome = () => {
-  catchHome().then(content => {
-    renderSpecies(content); // 1st phase
-    renderSpeciesDetails(content); // 2nd phase
+  catchHome().then(speciesArr => {
+    renderSpecies(speciesArr); // 1st phase
+    renderSpeciesDetails(speciesArr); // 2nd and 3rd phases
   });
 };
 
@@ -288,6 +292,6 @@ const renderHome = () => {
 // Render page as soon as DOM is available
 
 document.addEventListener('DOMContentLoaded', () => {
-  clearHomeResults();
+  clearCache();
   renderHome();
 });

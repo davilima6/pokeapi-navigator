@@ -156,6 +156,7 @@ body {
 }
 
 .species-main-flipper {
+  -moz-backface-visibility: hidden;
   position: relative;
   transform-style: preserve-3d;
   transition: 0.6s;
@@ -163,6 +164,7 @@ body {
 
 .species-main-front,
 .species-main-back {
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   left: 0;
   position: absolute;
@@ -170,6 +172,7 @@ body {
 }
 
 .species-main-front {
+  filter: blur(0);
   z-index: 2;
 }
 
