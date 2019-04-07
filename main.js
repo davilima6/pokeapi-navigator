@@ -37,7 +37,7 @@ class PokemonSpecies {
     this.habitat = data.habitat ? data.habitat.name : null;
     this.growthRate = data.growth_rate.name;
     this.flavorText = data.flavor_text_entries.find(
-      item => item.language.name === KEYS.ui.language,
+      item => item.language.name === KEYS.ui.language
     ).flavor_text;
     this.evolvesFromSpecies = data.evolves_from_species
       ? data.evolves_from_species.name
@@ -78,61 +78,71 @@ class ChainLink {
 
 // Helper: Pokemon Catcher, a wrapper function for Fetch API
 // E.g. fetches /api/v2/pokemon-species/?limit=10 or /api/v2/pokemon-species/bulbasaur
-const catch_ = (entity, id, options) => {
+const catch_ = async (entity, id, options) => {
   let url = `${KEYS.api.baseUrl}/${entity}/${id && !isNaN(id) ? `${id}/` : ''}`;
+
   if (options && options instanceof Object && options.constructor === Object) {
     url += `?${Object.keys(options)
       .reduce((prev, option) => prev.concat(`${option}=${options[option]}`), [])
       .join('&')}`;
   }
-  return fetch(url)
-    .then(response => response.json())
-    .catch(() => {
-      document.querySelector('.species-main').innerHTML =
-        '<p class="error">Sorry, there was an error retrieving data from PokéAPI. Please hunt again later.</p>';
-    });
+  try {
+    const response = await fetch(url);
+
+    return response.json();
+  } catch (e) {
+    document.querySelector('.species-main').innerHTML =
+      '<p class="error">Sorry, there was an error retrieving data from PokéAPI. Please hunt again later.</p>';
+  }
 };
 
 // Catcher: Run-once cached function that allows random Species Catching
-const catchSpeciesCount = entity => {
+const catchSpeciesCount = async (entity) => {
   const storedCount = sessionStorage.getItem(KEYS.cache.speciesCount);
+
   if (storedCount) {
-    return Promise.resolve(storedCount);
+    return storedCount;
   }
-  return catch_(KEYS.entity.pokemonSpecies, 'all', { limit: 1 }).then(data => {
-    sessionStorage.setItem(KEYS.cache.speciesCount, data.count);
-    return data.count;
-  });
+  const data = await catch_(KEYS.entity.pokemonSpecies, 'all', { limit: 1 });
+
+  sessionStorage.setItem(KEYS.cache.speciesCount, data.count);
+  return data.count;
 };
 
 // Catcher: Run-once cached function that provides initial set of Species
-const catchSpecies = () => {
+const catchSpecies = async () => {
   const storedSpecies = sessionStorage.getItem(KEYS.cache.homepageSpecies);
+
   if (storedSpecies) {
-    return Promise.resolve(JSON.parse(storedSpecies));
+    return JSON.parse(storedSpecies);
   }
-  return catchSpeciesCount(KEYS.entity.pokemonSpecies).then(count =>
-    catch_(KEYS.entity.pokemonSpecies, 'all', {
-      limit: KEYS.api.paginationLimit,
-      offset: Math.floor(Math.random() * (count - KEYS.api.paginationLimit)),
-    }).then(data => {
-      sessionStorage.setItem(
-        KEYS.cache.homepageSpecies,
-        JSON.stringify(data.results),
-      );
-      return data.results;
-    }),
+  const count = await catchSpeciesCount(KEYS.entity.pokemonSpecies);
+  const data = await catch_(KEYS.entity.pokemonSpecies, 'all', {
+    limit: KEYS.api.paginationLimit,
+    offset: Math.floor(Math.random() * (count - KEYS.api.paginationLimit))
+  });
+
+  sessionStorage.setItem(
+    KEYS.cache.homepageSpecies,
+    JSON.stringify(data.results)
   );
+  return data.results;
 };
 
 // Catcher: returns API data as an instance of PokemonSpecies model
 // TODO: also cache, for filtering and pagination
-const catchSpeciesDetails = id =>
-  catch_(KEYS.entity.pokemonSpecies, id).then(data => new PokemonSpecies(data));
+const catchSpeciesDetails = async (id) => {
+  const data = await catch_(KEYS.entity.pokemonSpecies, id);
+
+  return new PokemonSpecies(data);
+}
 
 // Catcher: returns API data as an instance of EvolutionChain model
-const catchEvolutionChain = id =>
-  catch_(KEYS.entity.evolutionChain, id).then(data => new EvolutionChain(data));
+const catchEvolutionChain = async (id) => {
+  const data = await catch_(KEYS.entity.evolutionChain, id);
+
+  return new EvolutionChain(data);
+}
 
 // HELPERS
 
@@ -163,13 +173,14 @@ const clearCache = () => {
 const renderSpecies = speciesArr => {
   const speciesEl = document.querySelector('.species-main');
   let innerHTML = '';
+
   for (const species of speciesArr) {
     const speciesTpl = `
 <li class="species-item" data-id="${_extractId(species.url)}">
   <div class="species-main-flipper">
     <div class="species-main-front">
       <div class="species-title" title="${_capitalise(
-        species.name,
+        species.name
       )}">${_capitalise(species.name)}</div>
       <div class="species-body">
         <div class="center">
@@ -192,6 +203,7 @@ const renderSpecies = speciesArr => {
 const renderSpeciesBody = pokemonSpecies => {
   const bodyEl = pokemonSpecies.dom.querySelector('.species-body');
   const btnEl = pokemonSpecies.dom.querySelector('.btn-evolution');
+
   pokemonSpecies.dom.style.background = 'lightyellow';
   btnEl.style.background = pokemonSpecies.color;
   btnEl.style.color = _isColorBright(pokemonSpecies.color)
@@ -217,6 +229,7 @@ const renderSpeciesBody = pokemonSpecies => {
 // View Helper: enable Show Evolution Chain button
 const renderFinalEvolutionBtn = pokemonSpecies => {
   const btnEl = pokemonSpecies.dom.querySelector('.btn-evolution');
+
   btnEl.addEventListener('click', e => {
     e.preventDefault();
     e.stopPropagation();
@@ -227,62 +240,65 @@ const renderFinalEvolutionBtn = pokemonSpecies => {
 };
 
 // View Helper: renders a PokemonSpecies Evolution Chain into card's back
-const renderEvolutionChain = pokemonSpecies =>
-  catchEvolutionChain(pokemonSpecies.evolutionChainId).then(evolutionChain => {
-    // Render card back's inner body
-    const speciesBackEl = pokemonSpecies.dom.querySelector(
-      '.species-main-back',
-    );
-    let innerHTML = '';
-    for (const species of evolutionChain) {
-      const speciesTpl = `<li class="species-next">${_capitalise(
-        species,
-      )}</li>`;
-      innerHTML += speciesTpl;
-    }
-    const body = evolutionChain.length
-      ? `<p><em>Evolution Chain:</em></p><ul class="species-evolution-chain">${innerHTML}</ul>`
-      : `<p><em>No Evolution Chain registered for this species.</em></p>`;
+const renderEvolutionChain = async (pokemonSpecies) => {
+  const evolutionChain = await catchEvolutionChain(pokemonSpecies.evolutionChainId);
 
-    // Render card's back
-    speciesBackEl.innerHTML = `<div class="species-title" title="${_capitalise(
-      pokemonSpecies.name,
-    )}">${_capitalise(pokemonSpecies.name)}</div>
-    <div class="species-body">${body}</div>
-    <a href="#" class="btn btn-details">${KEYS.ui.labels.btnDetails}</a>`;
+  // Render card back's inner body
+  const speciesBackEl = pokemonSpecies.dom.querySelector('.species-main-back');
+  let innerHTML = '';
 
-    // Render card's back button behavior
-    const btnEl = speciesBackEl.querySelector('.btn-details');
-    btnEl.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      pokemonSpecies.dom.classList.remove('show-back');
-    });
+  for (const species of evolutionChain) {
+    const speciesTpl = `<li class="species-next">${_capitalise(
+      species
+    )}</li>`;
+    innerHTML += speciesTpl;
+  }
+  const body = evolutionChain.length
+    ? `<p><em>Evolution Chain:</em></p><ul class="species-evolution-chain">${innerHTML}</ul>`
+    : `<p><em>No Evolution Chain registered for this species.</em></p>`;
 
-    return pokemonSpecies;
+  // Render card's back
+  speciesBackEl.innerHTML = `<div class="species-title" title="${_capitalise(
+    pokemonSpecies.name
+  )}">${_capitalise(pokemonSpecies.name)}</div>
+  <div class="species-body">${body}</div>
+  <a href="#" class="btn btn-details">${KEYS.ui.labels.btnDetails}</a>`;
+
+  // Render card's back button behavior
+  const btnEl = speciesBackEl.querySelector('.btn-details');
+  btnEl.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    pokemonSpecies.dom.classList.remove('show-back');
   });
+
+  return pokemonSpecies;
+}
 
 // View Helper: renders cards details for 2nd phase of Species Catching
 // Make fetches for each species, update cards details, evolution chain and buttons
-const renderSpeciesDetails = speciesArr => {
+const renderSpeciesDetails = async (speciesArr) => {
   for (const species of speciesArr) {
     const speciesId = _extractId(species.url);
-    catchSpeciesDetails(speciesId)
-      // Render species details on card's front
-      .then(pokemonSpecies => renderSpeciesBody(pokemonSpecies))
-      // Render evolution chain on card's back
-      .then(pokemonSpecies => renderEvolutionChain(pokemonSpecies))
-      // Enable button on card's front
-      .then(pokemonSpecies => renderFinalEvolutionBtn(pokemonSpecies));
+    let pokemonSpecies = await catchSpeciesDetails(speciesId);
+
+    // Render species details on card's front
+    pokemonSpecies = await renderSpeciesBody(pokemonSpecies);
+    // Render evolution chain on card's back
+    pokemonSpecies = await renderEvolutionChain(pokemonSpecies)
+    // Enable button on card's front
+    await renderFinalEvolutionBtn(pokemonSpecies);
   }
 };
 
 // Main Render: fetches batch of Species, renders them and then their details
-const renderHome = () => {
-  catchSpecies().then(speciesArr => {
-    renderSpecies(speciesArr); // 1st phase
-    renderSpeciesDetails(speciesArr); // 2nd phase
-  });
+const renderHome = async () => {
+  const speciesArr = await catchSpecies();
+
+  // 1st phase
+  renderSpecies(speciesArr);
+  // 2nd phase
+  renderSpeciesDetails(speciesArr);
 };
 
 // MAIN
