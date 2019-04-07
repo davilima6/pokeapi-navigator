@@ -1,0 +1,28 @@
+{
+  "name": "pokeapi-navigator",
+  "version": "1.0.0",
+  "description": "An exercise in Vanilla JS",
+  "main": "main.js",
+  "dependencies": {
+    "jest": "^24.7.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davilima6/pokeapi-navigator.git"
+  },
+  "keywords": [
+    "exercise",
+    "es6",
+    "jest"
+  ],
+  "author": "Davi Lima",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/davilima6/pokeapi-navigator/issues"
+  },
+  "homepage": "https://github.com/davilima6/pokeapi-navigator#readme"
+}
