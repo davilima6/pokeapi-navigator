@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "An exercise in Vanilla JS",
   "main": "main.js",
-  "dependencies": {
-    "jest": "^24.7.1"
+  "dependencies": {},
+  "devDependencies": {
+    "jest": "^24.7.1",
+    "jest-fetch-mock": "^2.1.2"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "test"
   },
