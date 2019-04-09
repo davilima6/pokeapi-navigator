@@ -2,7 +2,7 @@
   "name": "pokeapi-navigator",
   "version": "1.0.0",
   "description": "An exercise in Vanilla JS",
-  "main": "main.js",
+  "main": "src/main.js",
   "dependencies": {},
   "devDependencies": {
     "jest": "^24.7.1",

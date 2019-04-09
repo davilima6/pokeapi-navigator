@@ -1,29 +1,29 @@
-'use strict';
+"use strict";
 
 // CONSTANTS
 
 const KEYS = {
   api: {
-    baseUrl: 'https://pokeapi.co/api/v2',
-    paginationLimit: 10,
+    baseUrl: "https://pokeapi.co/api/v2",
+    paginationLimit: 10
   },
   entity: {
-    evolutionChain: 'evolution-chain',
-    pokemonSpecies: 'pokemon-species',
+    evolutionChain: "evolution-chain",
+    pokemonSpecies: "pokemon-species"
   },
   cache: {
-    speciesCount: 'pokeapinav_speciesCount',
-    homepageSpecies: 'pokeapinav_homepageSpecies',
+    speciesCount: "pokeapinav_speciesCount",
+    homepageSpecies: "pokeapinav_homepageSpecies"
   },
   ui: {
-    brightColors: ['white', 'pink', 'yellow'],
-    language: 'en',
+    brightColors: ["white", "pink", "yellow"],
+    language: "en",
     labels: {
-      unknown: '<em>Unknown</em>',
-      btnEvolution: 'Show evolution chain',
-      btnDetails: 'Show Species Details',
-    },
-  },
+      unknown: "<em>Unknown</em>",
+      btnEvolution: "Show evolution chain",
+      btnDetails: "Show Species Details"
+    }
+  }
 };
 
 // MODELS
@@ -79,33 +79,35 @@ class ChainLink {
 // Helper: Pokemon Catcher, a wrapper function for Fetch API
 // E.g. fetches /api/v2/pokemon-species/?limit=10 or /api/v2/pokemon-species/bulbasaur
 const catch_ = async (entity, id, options) => {
-  let url = `${KEYS.api.baseUrl}/${entity}/${id && !isNaN(id) ? `${id}/` : ''}`;
+  let url = `${KEYS.api.baseUrl}/${entity}/${id && !isNaN(id) ? `${id}/` : ""}`;
 
   if (options && options instanceof Object && options.constructor === Object) {
     url += `?${Object.keys(options)
       .reduce((prev, option) => prev.concat(`${option}=${options[option]}`), [])
-      .join('&')}`;
+      .join("&")}`;
   }
+
   try {
     const response = await fetch(url);
 
     return response.json();
   } catch (e) {
-    document.querySelector('.species-main').innerHTML =
+    document.querySelector(".species-main").innerHTML =
       '<p class="error">Sorry, there was an error retrieving data from PokéAPI. Please hunt again later.</p>';
   }
 };
 
 // Catcher: Run-once cached function that allows random Species Catching
-const catchSpeciesCount = async (entity) => {
+const catchSpeciesCount = async entity => {
   const storedCount = sessionStorage.getItem(KEYS.cache.speciesCount);
 
   if (storedCount) {
-    return storedCount;
+    return Number(storedCount);
   }
-  const data = await catch_(KEYS.entity.pokemonSpecies, 'all', { limit: 1 });
+  const data = await catch_(KEYS.entity.pokemonSpecies, "all", { limit: 1 });
 
   sessionStorage.setItem(KEYS.cache.speciesCount, data.count);
+
   return data.count;
 };
 
@@ -117,7 +119,7 @@ const catchSpecies = async () => {
     return JSON.parse(storedSpecies);
   }
   const count = await catchSpeciesCount(KEYS.entity.pokemonSpecies);
-  const data = await catch_(KEYS.entity.pokemonSpecies, 'all', {
+  const data = await catch_(KEYS.entity.pokemonSpecies, "all", {
     limit: KEYS.api.paginationLimit,
     offset: Math.floor(Math.random() * (count - KEYS.api.paginationLimit))
   });
@@ -126,23 +128,26 @@ const catchSpecies = async () => {
     KEYS.cache.homepageSpecies,
     JSON.stringify(data.results)
   );
+
   return data.results;
 };
 
 // Catcher: returns API data as an instance of PokemonSpecies model
 // TODO: also cache, for filtering and pagination
-const catchSpeciesDetails = async (id) => {
+const catchSpeciesDetails = async id => {
   const data = await catch_(KEYS.entity.pokemonSpecies, id);
+  const instance = new PokemonSpecies(data);
 
-  return new PokemonSpecies(data);
-}
+  return instance;
+};
 
 // Catcher: returns API data as an instance of EvolutionChain model
-const catchEvolutionChain = async (id) => {
+const catchEvolutionChain = async id => {
   const data = await catch_(KEYS.entity.evolutionChain, id);
+  const instance = new EvolutionChain(data);
 
-  return new EvolutionChain(data);
-}
+  return instance;
+};
 
 // HELPERS
 
@@ -155,14 +160,15 @@ const _capitalise = str => str.slice(0, 1).toUpperCase() + str.slice(1);
 // Controller/View Helper: extracts ID from a URL returned by API
 const _extractId = str =>
   str
-    .split('/')
+    .split("/")
     .slice(-2, -1)
     .pop();
 
 // Controller Helper: clear homepage species and other old keys from cache
-const clearCache = () => {
+// fullClean flag is currently only used for tests
+const clearCache = (fullClean = false) => {
   Object.keys(sessionStorage)
-    .filter(key => key !== KEYS.cache.speciesCount)
+    .filter(key => fullClean || key !== KEYS.cache.speciesCount)
     .forEach(key => sessionStorage.removeItem(key));
   return true;
 };
@@ -171,8 +177,8 @@ const clearCache = () => {
 
 // View Helper: renders basic UI cards for 1st phase of Species Catching
 const renderSpecies = speciesArr => {
-  const speciesEl = document.querySelector('.species-main');
-  let innerHTML = '';
+  const speciesEl = document.querySelector(".species-main");
+  let innerHTML = "";
 
   for (const species of speciesArr) {
     const speciesTpl = `
@@ -201,14 +207,14 @@ const renderSpecies = speciesArr => {
 
 // View Helper: enhances cards with details for 2nd phase of Species Catching
 const renderSpeciesBody = pokemonSpecies => {
-  const bodyEl = pokemonSpecies.dom.querySelector('.species-body');
-  const btnEl = pokemonSpecies.dom.querySelector('.btn-evolution');
+  const bodyEl = pokemonSpecies.dom.querySelector(".species-body");
+  const btnEl = pokemonSpecies.dom.querySelector(".btn-evolution");
 
-  pokemonSpecies.dom.style.background = 'lightyellow';
+  pokemonSpecies.dom.style.background = "lightyellow";
   btnEl.style.background = pokemonSpecies.color;
   btnEl.style.color = _isColorBright(pokemonSpecies.color)
-    ? 'gray'
-    : 'lightgray';
+    ? "gray"
+    : "lightgray";
   bodyEl.innerHTML = `
 <p class="species-flavor-text">"${pokemonSpecies.flavorText}"</p><br>
 <p><strong>Color:</strong> ${_capitalise(pokemonSpecies.color)}</p>
@@ -228,29 +234,29 @@ const renderSpeciesBody = pokemonSpecies => {
 
 // View Helper: enable Show Evolution Chain button
 const renderFinalEvolutionBtn = pokemonSpecies => {
-  const btnEl = pokemonSpecies.dom.querySelector('.btn-evolution');
+  const btnEl = pokemonSpecies.dom.querySelector(".btn-evolution");
 
-  btnEl.addEventListener('click', e => {
+  btnEl.addEventListener("click", e => {
     e.preventDefault();
     e.stopPropagation();
-    pokemonSpecies.dom.classList.add('show-back');
+    pokemonSpecies.dom.classList.add("show-back");
   });
-  btnEl.style.color = _isColorBright(pokemonSpecies.color) ? 'black' : 'white';
-  btnEl.classList.remove('btn-disabled');
+  btnEl.style.color = _isColorBright(pokemonSpecies.color) ? "black" : "white";
+  btnEl.classList.remove("btn-disabled");
 };
 
 // View Helper: renders a PokemonSpecies Evolution Chain into card's back
-const renderEvolutionChain = async (pokemonSpecies) => {
-  const evolutionChain = await catchEvolutionChain(pokemonSpecies.evolutionChainId);
+const renderEvolutionChain = async pokemonSpecies => {
+  const evolutionChain = await catchEvolutionChain(
+    pokemonSpecies.evolutionChainId
+  );
 
   // Render card back's inner body
-  const speciesBackEl = pokemonSpecies.dom.querySelector('.species-main-back');
-  let innerHTML = '';
+  const speciesBackEl = pokemonSpecies.dom.querySelector(".species-main-back");
+  let innerHTML = "";
 
   for (const species of evolutionChain) {
-    const speciesTpl = `<li class="species-next">${_capitalise(
-      species
-    )}</li>`;
+    const speciesTpl = `<li class="species-next">${_capitalise(species)}</li>`;
     innerHTML += speciesTpl;
   }
   const body = evolutionChain.length
@@ -265,19 +271,19 @@ const renderEvolutionChain = async (pokemonSpecies) => {
   <a href="#" class="btn btn-details">${KEYS.ui.labels.btnDetails}</a>`;
 
   // Render card's back button behavior
-  const btnEl = speciesBackEl.querySelector('.btn-details');
-  btnEl.addEventListener('click', e => {
+  const btnEl = speciesBackEl.querySelector(".btn-details");
+  btnEl.addEventListener("click", e => {
     e.preventDefault();
     e.stopPropagation();
-    pokemonSpecies.dom.classList.remove('show-back');
+    pokemonSpecies.dom.classList.remove("show-back");
   });
 
   return pokemonSpecies;
-}
+};
 
 // View Helper: renders cards details for 2nd phase of Species Catching
 // Make fetches for each species, update cards details, evolution chain and buttons
-const renderSpeciesDetails = async (speciesArr) => {
+const renderSpeciesDetails = async speciesArr => {
   for (const species of speciesArr) {
     const speciesId = _extractId(species.url);
     let pokemonSpecies = await catchSpeciesDetails(speciesId);
@@ -285,7 +291,7 @@ const renderSpeciesDetails = async (speciesArr) => {
     // Render species details on card's front
     pokemonSpecies = await renderSpeciesBody(pokemonSpecies);
     // Render evolution chain on card's back
-    pokemonSpecies = await renderEvolutionChain(pokemonSpecies)
+    pokemonSpecies = await renderEvolutionChain(pokemonSpecies);
     // Enable button on card's front
     await renderFinalEvolutionBtn(pokemonSpecies);
   }
@@ -305,7 +311,35 @@ const renderHome = async () => {
 
 // Render page as soon as DOM is available
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   clearCache();
   renderHome();
 });
+
+var module = module || {};
+module.exports = {
+  // constants
+  KEYS,
+  // models
+  PokemonSpecies,
+  EvolutionChain,
+  ChainLink,
+  // helpers
+  _isColorBright,
+  _capitalise,
+  _extractId,
+  clearCache,
+  // catchers
+  catch_,
+  catchSpeciesCount,
+  catchSpecies,
+  catchSpeciesDetails,
+  catchEvolutionChain,
+  // renderers
+  renderSpecies,
+  renderSpeciesBody,
+  renderFinalEvolutionBtn,
+  renderEvolutionChain,
+  renderSpeciesDetails,
+  renderHome
+};
