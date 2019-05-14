@@ -9,7 +9,7 @@
     "jest-fetch-mock": "^2.1.2"
   },
   "scripts": {
-    "test": "test"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
